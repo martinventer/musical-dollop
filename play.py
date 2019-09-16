@@ -77,16 +77,32 @@ if True:
 
     initial_shape = []
     for node in cords:
-        initial_shape.append(node[0])
+        initial_shape.append(node[-1])
 
     df = pd.DataFrame(initial_shape, columns=['x', 'y', 'z'])
 
-    threedee = plt.figure().gca(projection='3d')
-    threedee.scatter(df.x, df.y, df.z)
-    threedee.set_xlabel('X')
-    threedee.set_ylabel('Y')
-    threedee.set_zlabel('Z')
-    plt.show()
+    # threedee = plt.figure().gca(projection='3d')
+    # threedee.scatter(df.x, df.y, df.z)
+    # threedee.set_xlabel('X')
+    # threedee.set_ylabel('Y')
+    # threedee.set_zlabel('Z')
+    # plt.show()
 
 
+    # from scipy.spatial import ConvexHull
+    # hull = ConvexHull(initial_shape)
+    #
+    # len(hull.simplices)
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.scatter(df.x, df.y, df.z)
+
+plt.show()
 
