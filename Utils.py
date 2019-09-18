@@ -17,67 +17,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 import itertools
+
+import networkx as nx
+
 from tqdm import tqdm
-
-
-def element_gen_node_id_list(mesh) -> list:
-    for element in mesh.get_elements():
-        nodes = element.get_nodes()
-        yield [node.get_id() for node in nodes]
-
-
-def cooc_dict(mesh) -> dict:
-
-    num_elements = mesh.get_nElements()
-    gen = element_gen_node_id_list(mesh)
-
-    print("start")
-    # create a list of all possible paris of terms
-    combs = []
-    for element in tqdm(gen, total=num_elements):
-        possible_pairs = list(itertools.combinations(element, 2))
-        combs.append(possible_pairs)
-
-    # print("init dict")
-    # # initialise a dictionary containing an entry for each pair of words
-    # default_count = 0
-    # cooccurring = dict.fromkeys(possible_pairs, default_count)
-    #
-    # print("index dict")
-    # # incriment possible pairs for each occurance
-    # for observation in gen:
-    #     for pair in possible_pairs:
-    #         if pair[0] in observation and pair[1] in observation:
-    #             cooccurring[pair] += 1
-    #
-    # # remove cases where the co-occurance is lest than a set mimimum
-    # # cooccurring = {k: v for k, v in cooccurring.items() if
-    # #                v > self.minimum_occurance}
-    #
-    # return cooccurring
-
-def get_surface_nodes(mesh) -> list:
-    """
-    Extract the node on the surface of a mesh
-        1 iterate through the mesh one element at a time and extract elements
-        2 build up node adjacency matrix based on shared elements
-        3 build a network from the adjacency matrix
-        4 extract nodes with degree less than threshold
-    :param mesh:
-    :return:
-    """
-    return []
-
-
-def plot_3d(data) -> None:
-    """plot a set of points in 3 dimensions"""
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    ax.scatter(data[:, 0], data[:, 1], data[:, 2])
-
-    plt.show()
 
 
 def nodes_to_coord_array(node_list, timestep=0) -> np.array:
@@ -87,6 +30,74 @@ def nodes_to_coord_array(node_list, timestep=0) -> np.array:
         points.append(node.get_coords())
 
     return np.array(points)[:, timestep, :]
+
+
+def plot_3d(data) -> None:
+    """plot a set of points in 3 dimensions"""
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(data[:, 0], data[:, 1], data[:, 2])
+    plt.show()
+
+
+def element_node_id_generator(mesh) -> list:
+    """generator for element node lists"""
+    for element in mesh.get_elements():
+        nodes = element.get_nodes()
+        yield [node.get_id() for node in nodes]
+
+
+def node_element_id_generator(mesh) -> list:
+    """generator for node element node lists"""
+    for element in mesh.get_elements():
+        nodes = element.get_nodes()
+        yield [node.get_id() for node in nodes]
+
+
+def node_cooc_within_element(mesh) -> tuple:
+    """generator for unique node co-occurances within elements of a mesh"""
+    # keep a set of pairs that have already been seen
+    seen = set()
+    # iterate over each element in the mesh
+    for element in element_node_id_generator(mesh):
+        # find all possible paris of co-occurance in that element
+        possible_pairs = list(itertools.combinations(element, 2))
+        # iterate over each pair of co-occurances
+        for pair in possible_pairs:
+            # test whether that pair has been seen before
+            if pair not in seen:
+                # if not seen before append the pair and its reverse to seen
+                seen.add(pair[::-1])
+                seen.add(pair)
+                yield pair
+
+def element_(mesh) -> tuple:
+    """generator for unique node co-occurances within elements of a mesh"""
+
+
+def node_cooc_network(mesh):
+    """build up a network from a set of occurance pairs"""
+    pair_gen = node_cooc_within_element(mesh)
+    G = nx.Graph()
+    for edge in pair_gen:
+        G.add_edge(*edge)
+    return G
+
+
+def get_surface_node_ids(mesh, threshold=15) -> list:
+    """
+    Extract the node on the surface of a mesh
+        1 iterate through the mesh one element at a time and extract
+        elements
+        2 build up node co-occurance list
+        3 build a network from the co-occurance list
+        4 extract node ids for nodes with degree less than threshold
+    :param mesh: mesh object
+    :return: list of low connectivity nodes
+    """
+    graph = node_cooc_network(mesh)
+    node_degrees = nx.degree(graph)
+    return [node_id for (node_id, deg) in node_degrees if deg <= threshold]
 
 
 class SurfaceNodes(BaseEstimator, TransformerMixin):
@@ -159,88 +170,108 @@ if __name__ == '__main__':
     path = "/media/martin/Stuff/research/MaterailModels/MM003/"
     file = "MM003_job01.d3plot"
 
-    # d3plot = D3plot("/media/martin/Stuff/research/MaterailModels/MM003"
-    #                 "/MM003_job01.d3plot", read_states="disp")
-
     d3plot = D3plot(path + file, read_states="disp")
 
-    # ==============================================================================
-    # plot_3d
-    # ==============================================================================
-    if False:
+    # test flags
+    nodes_to_coord_array_flag = False
+    plot_3d_flag = False
 
-        plot_3d(nodes_to_coord_array(d3plot.get_nodes()))
+    element_node_id_generator_flag = False
+    cooc_pairs_flag = True
+    cooc_network_flag = True
+    get_surface_node_ids_flag = True
 
     # ==============================================================================
     # nodes_to_coord_array
     # ==============================================================================
-    if False:
-        coords = nodes_to_coord_array(d3plot.get_nodes())
-
-        print(coords.shape)
-
-    # ==============================================================================
-    # element_gen_node_id_list
-    # ==============================================================================
-    if False:
-        gen = element_gen_node_id_list(d3plot)
-
-        print(next(gen))
+    if nodes_to_coord_array_flag:
+        print("Expect (n, 3) array \n Get {}".format(
+            nodes_to_coord_array(d3plot.get_nodes()).shape
+        ))
 
     # ==============================================================================
-    # cooc_dict
+    # plot_3d
     # ==============================================================================
-    if True:
-        # gen = element_gen_node_id_list(d3plot)
-        coocurrance = cooc_dict(d3plot)
-        print(coocurrance)
+    if plot_3d_flag:
+        plot_3d(nodes_to_coord_array(d3plot.get_nodes()))
+
+
+    # ==============================================================================
+    # element_node_id_generator
+    # ==============================================================================
+    if element_node_id_generator_flag:
+        print("Expect a list of node ids \n Get {}".format(
+            next(element_node_id_generator(d3plot)))
+        )
+
+    # ==============================================================================
+    # node_cooc_within_element
+    # ==============================================================================
+    if cooc_pairs_flag:
+        coocurrance_pairs = node_cooc_within_element(d3plot)
+
+    # ==============================================================================
+    # node_cooc_network
+    # ==============================================================================
+    if cooc_network_flag:
+        network = node_cooc_network(d3plot)
+        print(nx.info(network))
+        plt.hist(list(dict(nx.degree(network)).values()))
+
+    # ==============================================================================
+    # get_surface_node_ids
+    # ==============================================================================
+    if get_surface_node_ids_flag:
+        node_ids = get_surface_node_ids(d3plot, threshold=20)
+        plot_3d(nodes_to_coord_array(d3plot.get_nodeByID(node_ids)))
+
 
     # ==============================================================================
     # SurfaceNodes
     # ==============================================================================
-    if False:
-        # surface_node_extractor = SurfaceNodes()
-        # node_list = d3plot.get_nodes()
-        # points = surface_node_extractor.fit_transform(
-        #     node_list)
-        #
-        # plot_3d(points)
-
-        node_list = d3plot.get_nodes()
-
-        cords =[]
-        for node in node_list:
-            crd = node.get_coords()
-            # print(crd.shape)
-            cords.append(crd)
-
-        print(len(cords))
-        cords_arr = np.array(cords)
-        print(cords_arr.shape)
-
-        ts0 = cords_arr[:, 21, :]
-        print(ts0.shape)
-        plot_3d(ts0)
-
-
-        hull = ConvexHull(ts0)
-        cords_edge_index = hull.vertices
-        print(cords_edge_index.shape)
-        cords_edge = ts0[cords_edge_index, :]
-        plot_3d(cords_edge)
-
-        from scipy.spatial import Delaunay
-
-        tri = Delaunay(ts0)
-        pts = tri.simplices
-
-
-
-        pts = np.unique(pts)
-        cords_surf = ts0[pts, :]
-        plot_3d(cords_surf)
-
-
+    # if False:
+    #     # surface_node_extractor = SurfaceNodes()
+    #     # node_list = d3plot.get_nodes()
+    #     # points = surface_node_extractor.fit_transform(
+    #     #     node_list)
+    #     #
+    #     # plot_3d(points)
+    #
+    #     node_list = d3plot.get_nodes()
+    #
+    #     cords =[]
+    #     for node in node_list:
+    #         crd = node.get_coords()
+    #         # print(crd.shape)
+    #         cords.append(crd)
+    #
+    #     print(len(cords))
+    #     cords_arr = np.array(cords)
+    #     print(cords_arr.shape)
+    #
+    #     ts0 = cords_arr[:, 21, :]
+    #     print(ts0.shape)
+    #     plot_3d(ts0)
+    #
+    #
+    #     hull = ConvexHull(ts0)
+    #     cords_edge_index = hull.vertices
+    #     print(cords_edge_index.shape)
+    #     cords_edge = ts0[cords_edge_index, :]
+    #     plot_3d(cords_edge)
+    #
+    #     from scipy.spatial import Delaunay
+    #
+    #     tri = Delaunay(ts0)
+    #     pts = tri.simplices
+    #
+    #
+    #
+    #     pts = np.unique(pts)
+    #     cords_surf = ts0[pts, :]
+    #     plot_3d(cords_surf)
+    #
+    #
 
 
 
