@@ -34,10 +34,26 @@ def nodes_to_coord_array(node_list, timestep=0) -> np.array:
 
 
 def plot_3d(data) -> None:
-    """plot a set of points in 3 dimensions"""
+    """plot a set of points in 3 dimensions, with consistant scale"""
+    x, y, z = data[:, 0], data[:, 1], data[:, 2]
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(data[:, 0], data[:, 1], data[:, 2])
+    ax.scatter(x, y, z)
+
+    # Create cubic bounding box to simulate equal aspect ratio
+    max_range = np.array(
+        [x.max() - x.min(), y.max() - y.min(), z.max() - z.min()]).max()
+    Xb = 0.5 * max_range * np.mgrid[-1:2:2, -1:2:2, -1:2:2][
+        0].flatten() + 0.5 * (x.max() + x.min())
+    Yb = 0.5 * max_range * np.mgrid[-1:2:2, -1:2:2, -1:2:2][
+        1].flatten() + 0.5 * (y.max() + y.min())
+    Zb = 0.5 * max_range * np.mgrid[-1:2:2, -1:2:2, -1:2:2][
+        2].flatten() + 0.5 * (z.max() + z.min())
+    # Comment or uncomment following both lines to test the fake bounding box:
+    for xb, yb, zb in zip(Xb, Yb, Zb):
+        ax.plot([xb], [yb], [zb], 'w')
+
     plt.show()
 
 
@@ -55,150 +71,190 @@ def element_id_list_generator_by_node(mesh) -> list:
         yield [element.get_id() for element in elements]
 
 
-def node_cooc_within_element(mesh) -> tuple:
-    """generator for unique node co-occurances within elements of a mesh"""
-    # keep a set of pairs that have already been seen
-    seen = set()
-    # iterate over each element in the mesh
-    for element in node_id_list_generator_by_element(mesh):
-        # find all paris of node co-occurance in that element
-        possible_pairs = list(itertools.combinations(element, 2))
-        # iterate over each pair of co-occurances
-        for pair in possible_pairs:
-            # test whether that pair has been seen before
-            if pair not in seen:
-                # if not seen before append the pair and its reverse to seen
-                seen.add(pair[::-1])
-                seen.add(pair)
-                yield pair
-
-
-def element_cooc_with_nodes(mesh) -> tuple:
-    """generator for unique element co-occurances with shared nodes"""
-    # keep a set of pairs that have already been seen
-    seen = set()
-    # iterate over each node in the mesh
-    for node in element_id_list_generator_by_node(mesh):
-        # find all pairs of element co-occurance at that node
-        possible_pairs = list(itertools.combinations(node, 2))
-        # iterate over each pair of co-occurances
-        for pair in possible_pairs:
-            # test whether that pair has been seen before
-            if pair not in seen:
-                # if not seen before append the pair and its reverse to seen
-                seen.add(pair[::-1])
-                seen.add(pair)
-                yield pair
-
-
-def node_cooc_network(mesh):
-    """build up a network from a set of occurance pairs"""
-    pair_gen = node_cooc_within_element(mesh)
-    G = nx.Graph()
-    for edge in pair_gen:
-        G.add_edge(*edge)
-    return G
-
-
-def element_cooc_network(mesh):
-    """build up a network from a set of occurance pairs"""
-    pair_gen = element_cooc_with_nodes(mesh)
-    G = nx.Graph()
-    for edge in pair_gen:
-        G.add_edge(*edge)
-    return G
-
-
-def get_surface_node_ids(mesh, threshold=15) -> list:
-    """
-    Extract the node on the surface of a mesh
-        1 iterate through the mesh one element at a time and extract
-        elements
-        2 build up node co-occurance list
-        3 build a network from the co-occurance list
-        4 extract node ids for nodes with degree less than threshold
-    :param mesh: mesh object
-    :return: list of low connectivity nodes
-    """
-    graph = node_cooc_network(mesh)
-    node_degrees = nx.degree(graph)
-    nodes_1= [node_id for (node_id, deg) in node_degrees if deg <= threshold]
-
-    graph2 = element_cooc_network(mesh)
-    element_degrees = nx.degree(graph2)
-    elements_low = [element_id for (element_id, deg) in element_degrees if deg
-                    <= threshold]
-
-    nodes_2 = []
-    for element in mesh.get_elementByID(Element.solid, elements_low):
-        nodes = element.get_nodes()
-        nodes_2 += [node.get_id() for node in nodes]
-
-    return list(set(nodes_1) & set(nodes_2))
-
-
-# class SurfaceNodes(BaseEstimator, TransformerMixin):
+# def node_cooc_within_element(mesh) -> tuple:
+#     """generator for unique node co-occurances within elements of a mesh"""
+#     # keep a set of pairs that have already been seen
+#     seen = set()
+#     # iterate over each element in the mesh
+#     for element in node_id_list_generator_by_element(mesh):
+#         # find all paris of node co-occurance in that element
+#         possible_pairs = list(itertools.combinations(element, 2))
+#         # iterate over each pair of co-occurances
+#         for pair in possible_pairs:
+#             # test whether that pair has been seen before
+#             if pair not in seen:
+#                 # if not seen before append the pair and its reverse to seen
+#                 seen.add(pair[::-1])
+#                 seen.add(pair)
+#                 yield pair
+#
+#
+# def element_cooc_with_nodes(mesh) -> tuple:
+#     """generator for unique element co-occurances with shared nodes"""
+#     # keep a set of pairs that have already been seen
+#     seen = set()
+#     # iterate over each node in the mesh
+#     for node in element_id_list_generator_by_node(mesh):
+#         # find all pairs of element co-occurance at that node
+#         possible_pairs = list(itertools.combinations(node, 2))
+#         # iterate over each pair of co-occurances
+#         for pair in possible_pairs:
+#             # test whether that pair has been seen before
+#             if pair not in seen:
+#                 # if not seen before append the pair and its reverse to seen
+#                 seen.add(pair[::-1])
+#                 seen.add(pair)
+#                 yield pair
+#
+#
+# def node_cooc_network(mesh):
+#     """build up a network from a set of occurance pairs"""
+#     pair_gen = node_cooc_within_element(mesh)
+#     G = nx.Graph()
+#     for edge in pair_gen:
+#         G.add_edge(*edge)
+#     return G
+#
+#
+# def element_cooc_network(mesh):
+#     """build up a network from a set of occurance pairs"""
+#     pair_gen = element_cooc_with_nodes(mesh)
+#     G = nx.Graph()
+#     for edge in pair_gen:
+#         G.add_edge(*edge)
+#     return G
+#
+#
+# def get_surface_node_ids(mesh, threshold=15) -> list:
 #     """
-#     A transformer that takes a list of nodes from a d3plot and returns a
-#     subset containing only surface nodes, as a list of node objects.
+#     Extract the node on the surface of a mesh
+#         1 iterate through the mesh one element at a time and extract
+#         elements
+#         2 build up node co-occurance list
+#         3 build a network from the co-occurance list
+#         4 extract node ids for nodes with degree less than threshold
+#     :param mesh: mesh object
+#     :return: list of low connectivity nodes
 #     """
-#     def __init__(self):
-#         self.all_nodes_list = []
-#         self.all_coords = []
-#         self.node_ids = []
-#         self.surface_points = []
-#         self.surface_node_ids = []
+#     graph = node_cooc_network(mesh)
+#     node_degrees = nx.degree(graph)
+#     nodes_1= [node_id for (node_id, deg) in node_degrees if deg <= threshold]
 #
-#     def _get_all_coords(self) -> list:
-#         """
-#         Takes the list of all_nodes, and returns a list of co-ordinate arrays
-#         for each node in x, y, z space.
-#         :return: list - of arrays containing point coords
-#         """
-#         points = []
-#         for node in self.all_nodes_list:
-#             points.append(node.get_coords())
+#     graph2 = element_cooc_network(mesh)
+#     element_degrees = nx.degree(graph2)
+#     elements_low = [element_id for (element_id, deg) in element_degrees if deg
+#                     <= threshold]
 #
-#         return points
+#     nodes_2 = []
+#     for element in mesh.get_elementByID(Element.solid, elements_low):
+#         nodes = element.get_nodes()
+#         nodes_2 += [node.get_id() for node in nodes]
 #
-#     def _get_surface_points(self) -> list:
-#         """
-#         given a list of cords, determine which are on the surface of the
-#         point cloud
-#         :return: list - of point cords on surface of point cloud
-#         """
-#         onets = nodes_to_coord_array( self.all_nodes_list)
-#         # hull = ConvexHull(self.all_coords)
-#         hull = ConvexHull(onets)
-#         surface_points = list(hull.simplices)
-#
-#         return surface_points
-#
-#     def _get_surface_node_ids(self) -> list:
-#         """
-#         Given a list of all the coords in an object, find the points on the
-#         surface of that object.
-#         :return: list - of node ids for the surface nodes.
-#         """
-#         node_ids = []
-#         for node in self.all_nodes_list:
-#             id = node.get_id()
-#             coord = list(node.get_coords())
-#             if coord in self.surface_points:
-#                 node_ids.append(id)
-#
-#         return node_ids
-#
-#     def fit(self, all_nodes_list) -> object:
-#         """find the nodes on the surface of the geometry"""
-#         self.all_nodes_list = all_nodes_list
-#         self.all_coords = self._get_all_coords()
-#         self.surface_points = self._get_surface_points()
-#         self.surface_node_ids = self._get_surface_node_ids()
-#         return self
-#
-#     def transform(self) -> list:
-#         return self.surface_points
+#     return list(set(nodes_1) & set(nodes_2))
+
+
+class SurfaceNodeIds(BaseEstimator, TransformerMixin):
+    """
+    A transformer that takes a D3plot object and returns the surface node IDS
+    """
+    def __init__(self, threshold=15):
+        self.threshold = threshold
+        self.surface_node_ids = None
+
+    @staticmethod
+    def _node_cooc_within_element(mesh) -> tuple:
+        """generator for unique node co-occurances within elements of a mesh"""
+        # keep a set of pairs that have already been seen
+        seen = set()
+        # iterate over each element in the mesh
+        for element in node_id_list_generator_by_element(mesh):
+            # find all paris of node co-occurance in that element
+            possible_pairs = list(itertools.combinations(element, 2))
+            # iterate over each pair of co-occurances
+            for pair in possible_pairs:
+                # test whether that pair has been seen before
+                if pair not in seen:
+                    # if not seen before append the pair and its reverse to seen
+                    seen.add(pair[::-1])
+                    seen.add(pair)
+                    yield pair
+
+    @staticmethod
+    def _element_cooc_with_nodes(mesh) -> tuple:
+        """generator for unique element co-occurances with shared nodes"""
+        # keep a set of pairs that have already been seen
+        seen = set()
+        # iterate over each node in the mesh
+        for node in element_id_list_generator_by_node(mesh):
+            # find all pairs of element co-occurance at that node
+            possible_pairs = list(itertools.combinations(node, 2))
+            # iterate over each pair of co-occurances
+            for pair in possible_pairs:
+                # test whether that pair has been seen before
+                if pair not in seen:
+                    # if not seen before append the pair and its reverse to seen
+                    seen.add(pair[::-1])
+                    seen.add(pair)
+                    yield pair
+
+    def _node_cooc_network(self, mesh):
+        """build up a network from a set of occurance pairs"""
+        pair_gen = self._node_cooc_within_element(mesh)
+        G = nx.Graph()
+        for edge in pair_gen:
+            G.add_edge(*edge)
+        return G
+
+    def _element_cooc_network(self, mesh):
+        """build up a network from a set of occurance pairs"""
+        pair_gen = self._element_cooc_with_nodes(mesh)
+        G = nx.Graph()
+        for edge in pair_gen:
+            G.add_edge(*edge)
+        return G
+
+    def _get_surface_node_ids(self, mesh) -> list:
+        """
+        Extract the node on the surface of a mesh
+            1 iterate through the mesh one element at a time and extract
+            elements
+            2 build up node co-occurance list
+            3 build a network from the co-occurance list
+            4 extract node ids for nodes with degree less than threshold
+        :param mesh: mesh object
+        :return: list of low connectivity nodes
+        """
+        node_network = self._node_cooc_network(mesh)
+        node_degrees = nx.degree(node_network)
+        nodes_from_node_network = [
+            node_id for (node_id, deg) in node_degrees if deg <= self.threshold
+        ]
+
+        element_network = self._element_cooc_network(mesh)
+        element_degrees = nx.degree(element_network)
+        elements_from_element_network = [
+            element_id for (element_id, deg) in element_degrees
+            if deg <= self.threshold
+        ]
+
+        nodes_from_element_network = []
+        for element in mesh.get_elementByID(
+                Element.solid, elements_from_element_network
+        ):
+            nodes = element.get_nodes()
+            nodes_from_element_network += [node.get_id() for node in nodes]
+
+        return list(
+            set(nodes_from_node_network) & set(nodes_from_element_network)
+        )
+
+    def fit(self, mesh) -> object:
+        self.surface_node_ids = self._get_surface_node_ids(mesh)
+        return self
+
+    def transform(self, mesh) -> list:
+        yield from self.surface_node_ids
+        # return self.surface_node_ids
 
 
 if __name__ == '__main__':
@@ -215,11 +271,8 @@ if __name__ == '__main__':
 
     node_id_list_generator_by_element_flag = False
     element_id_list_generator_by_node_flag = False
-    node_cooc_within_element_flag = False
-    element_cooc_with_nodes_flag = True
-    node_cooc_network_flag = False
-    element_cooc_network_flag = False
-    get_surface_node_ids_flag = True
+
+    surfaceNodeIds_flag = True
 
     # ==============================================================================
     # nodes_to_coord_array
@@ -251,98 +304,53 @@ if __name__ == '__main__':
             next(element_id_list_generator_by_node(d3plot)))
         )
 
-    # ==============================================================================
-    # node_cooc_within_element
-    # ==============================================================================
-    if node_cooc_within_element_flag:
-        node_coocurrance_pairs = node_cooc_within_element(d3plot)
-
-    # ==============================================================================
-    # element_cooc_with_nodes
-    # ==============================================================================
-    if element_cooc_with_nodes_flag:
-        element_coocurrance_pairs = element_cooc_with_nodes(d3plot)
-
-    # ==============================================================================
-    # node_cooc_network
-    # ==============================================================================
-    if node_cooc_network_flag:
-        network = node_cooc_network(d3plot)
-        print(nx.info(network))
-        plt.hist(list(dict(nx.degree(network)).values()))
-
-    # ==============================================================================
-    # element_cooc_network
-    # ==============================================================================
-    if element_cooc_network_flag:
-        network = element_cooc_network(d3plot)
-        print(nx.info(network))
-        plt.hist(list(dict(nx.degree(network)).values()))
-
-    # ==============================================================================
-    # get_surface_node_ids
-    # ==============================================================================
-    if get_surface_node_ids_flag:
-        node_ids = get_surface_node_ids(d3plot, threshold=20)
-        plot_3d(nodes_to_coord_array(d3plot.get_nodeByID(node_ids)))
-
-
-    # ==============================================================================
-    # SurfaceNodes
-    # ==============================================================================
-    # if False:
-    #     # surface_node_extractor = SurfaceNodes()
-    #     # node_list = d3plot.get_nodes()
-    #     # points = surface_node_extractor.fit_transform(
-    #     #     node_list)
-    #     #
-    #     # plot_3d(points)
+    # # ==============================================================================
+    # # node_cooc_within_element
+    # # ==============================================================================
+    # if node_cooc_within_element_flag:
+    #     node_coocurrance_pairs = node_cooc_within_element(d3plot)
     #
-    #     node_list = d3plot.get_nodes()
+    # # ==============================================================================
+    # # element_cooc_with_nodes
+    # # ==============================================================================
+    # if element_cooc_with_nodes_flag:
+    #     element_coocurrance_pairs = element_cooc_with_nodes(d3plot)
     #
-    #     cords =[]
-    #     for node in node_list:
-    #         crd = node.get_coords()
-    #         # print(crd.shape)
-    #         cords.append(crd)
+    # # ==============================================================================
+    # # node_cooc_network
+    # # ==============================================================================
+    # if node_cooc_network_flag:
+    #     network = node_cooc_network(d3plot)
+    #     print(nx.info(network))
+    #     plt.hist(list(dict(nx.degree(network)).values()))
     #
-    #     print(len(cords))
-    #     cords_arr = np.array(cords)
-    #     print(cords_arr.shape)
+    # # ==============================================================================
+    # # element_cooc_network
+    # # ==============================================================================
+    # if element_cooc_network_flag:
+    #     network = element_cooc_network(d3plot)
+    #     print(nx.info(network))
+    #     plt.hist(list(dict(nx.degree(network)).values()))
     #
-    #     ts0 = cords_arr[:, 21, :]
-    #     print(ts0.shape)
-    #     plot_3d(ts0)
-    #
-    #
-    #     hull = ConvexHull(ts0)
-    #     cords_edge_index = hull.vertices
-    #     print(cords_edge_index.shape)
-    #     cords_edge = ts0[cords_edge_index, :]
-    #     plot_3d(cords_edge)
-    #
-    #     from scipy.spatial import Delaunay
-    #
-    #     tri = Delaunay(ts0)
-    #     pts = tri.simplices
-    #
-    #
-    #
-    #     pts = np.unique(pts)
-    #     cords_surf = ts0[pts, :]
-    #     plot_3d(cords_surf)
-    #
-    #
+    # # ==============================================================================
+    # # get_surface_node_ids
+    # # ==============================================================================
+    # if get_surface_node_ids_flag:
+    #     node_ids = get_surface_node_ids(d3plot, threshold=20)
+    #     plot_3d(nodes_to_coord_array(d3plot.get_nodeByID(node_ids)))
 
 
+    # ==============================================================================
+    # SurfaceNodeIds
+    # ==============================================================================
+    if surfaceNodeIds_flag:
+        surface_node_extractor = SurfaceNodeIds(threshold=20)
+        node_ids_surface = surface_node_extractor.fit_transform(d3plot)
+        print(node_ids_surface)
+        # print(next(node_ids_surface))
+        plot_3d(
+            nodes_to_coord_array(
+                d3plot.get_nodeByID(
+                    list(node_ids_surface))))
 
-        # cords_surface_index = np.unique(hull.simplices)
-        # print(cords_surface_index.shape)
-
-        # cords_surface_index = list(set([i for i in cords_surface_index]))
-        # print(cords_surface_index.shape)
-
-        # cords_surf = cords_arr[cords_surface_index, 0, :]
-        # print(cords_surf.shape)
-        # plot_3d(cords_surf)
 
