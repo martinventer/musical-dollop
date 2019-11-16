@@ -1,0 +1,31 @@
+openc command "/media/martin/Stuff/research/MaterailModels/MM012/MM012.msg.cfile" nodialog
+workingdirectory /media/martin/Stuff/research/MaterailModels/MM012
+cemptymodel
+genselect target node
+genselect clear
+meshing cylindersolid create 0.010000 0.012000 101 25 0.000000 0.000000,0.000000,1.000000,0.000000,0.000000,0,0.000000
+meshing cylindersolid accept 1 1 1 cylindersolid
+No duplicated nodes found!
+ac
+setnode
+genselect target node
+genselect clear
+genselect clear
+genselect node add plane in 0 0 0 1 0 0 0.0001 0
+setnode createset 1 1 0 0 0 0 "left" 
+genselect clear
+genselect node add plane in 0.012 0 0 1 0 0 0.0001 0
+setnode createset 2 1 0 0 0 0 "right" 
+genselect clear
+genselect target node
+genselect clear
+KEYWORD INPUT 1
+keyword updatekind
+save keywordabsolute 0
+save keywordbylongfmt 0
+save keywordbyi10fmt 0
+save outversion 9
+save keyword /media/martin/Stuff/research/MaterailModels/MM012/MM012geom.k
+Finished reading command file!
+exit
+Save Config. parameters to file /home/martin/LSTC/LS-PrePost4.7/lsppconf
