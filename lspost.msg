@@ -25,7 +25,7 @@ save keywordabsolute 0
 save keywordbylongfmt 0
 save keywordbyi10fmt 0
 save outversion 9
-save keyword /media/martin/Stuff/research/MaterailModels/MM012/MM012geom.k
+save keyword /media/martin/Stuff/research/MaterailModels/MM012/MM012_geom.k
 Finished reading command file!
 exit
 Save Config. parameters to file /home/martin/LSTC/LS-PrePost4.7/lsppconf
