@@ -1,0 +1,47 @@
+ 
+ *** Error 70057 (OTH+57)
+     can not open file on unit 13 iostat= 2
+ media/martin/Stuff/research/MaterailModels/MM012/MM012_job02.d3hsp
+      Date: 11/20/2019      Time: 08:15:35  
+
+     ___________________________________________________
+     |                                                 |
+     |  Livermore  Software  Technology  Corporation   |
+     |                                                 |
+     |  7374 Las Positas Road                          |
+     |  Livermore, CA 94551                            |
+     |  Tel: (925) 449-2500  Fax: (925) 449-2507       |
+     |  www.lstc.com                                   |
+     |_________________________________________________|
+     |                                                 |
+     |  LS-DYNA, A Program for Nonlinear Dynamic       |
+     |  Analysis of Structures in Three Dimensions     |
+     |  Version : smp s R10.1.0   Date: 01/12/2018     |
+     |  Revision: 123264          Time: 16:34:46       |
+     |                                                 |
+     |  Features enabled in this version:              |
+     |    Shared Memory Parallel                       |
+     |    FFTW (multi-dimensional FFTW Library)        |
+     |    Interactive Graphics                         |
+     |    ANSYS Database format                        |
+     |    MADYMO indirect coupling (7.2 or higher)     |
+     |                                                 |
+     |  Licensed to: Stellenbosch University - 1409    |
+     |  Issued by  : LSTC_01142019                     |
+     |                                                 |
+     |  Platform   : AMD64 System                      |
+     |  OS Level   : Linux 3.0.51 ulm                  |
+     |  Compiler   : PGI pgf90 16.5-0                  |
+     |  Hostname   : martin-Blade                      |
+     |  Precision  : Single precision (I4R4)           |
+     |  SVN Version: 123300                            |
+     |                                                 |
+     |  Unauthorized use infringes LSTC copyrights     |
+     |_________________________________________________|
+
+
+ Input file: /media/martin/Stuff/research/MaterailModels/MM012/MM012main.k                   
+
+ The native file format       : 32-bit small endian
+ Memory size from command line:  1000000000
+ JOBID                        : media/martin/Stuff/research/MaterailModels/MM012/MM012_job02

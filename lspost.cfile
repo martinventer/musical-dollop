@@ -1,5 +1,5 @@
 $# LS-PrePost command file created by LS-PrePost(R) V4.7.0 - 05Nov2019 -64bit-Linux
-$# Created on Nov-13-2019 (16:25:08)
+$# Created on Nov-20-2019 (08:05:14)
 workingdirectory /media/martin/Stuff/research/MaterailModels/MM012
 cemptymodel
 genselect target node
