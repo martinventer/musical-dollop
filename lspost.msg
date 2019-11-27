@@ -1,5 +1,5 @@
-openc command "/media/martin/Stuff/research/MaterailModels/MM012/MM012.msg.cfile" nodialog
-workingdirectory /media/martin/Stuff/research/MaterailModels/MM012
+openc command "/media/martin/Stuff/research/MaterailModels/MM013/MM013.msg.cfile" nodialog
+workingdirectory /media/martin/Stuff/research/MaterailModels/MM013
 cemptymodel
 genselect target node
 genselect clear
@@ -25,7 +25,7 @@ save keywordabsolute 0
 save keywordbylongfmt 0
 save keywordbyi10fmt 0
 save outversion 9
-save keyword /media/martin/Stuff/research/MaterailModels/MM012/MM012_geom.k
+save keyword /media/martin/Stuff/research/MaterailModels/MM013/MM013_geom.k
 Finished reading command file!
 exit
 Save Config. parameters to file /home/martin/LSTC/LS-PrePost4.7/lsppconf

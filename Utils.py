@@ -21,6 +21,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import itertools
 
 from qd.cae.dyna import Element
+from qd.cae.dyna import KeyFile
+
+from scipy.spatial import distance
 
 
 def nodes_to_coord_array(node_list, timestep=0) -> np.array:
@@ -274,6 +277,7 @@ class PuckSim:
             self.sim_dir = sim_dir
 
         self.sim_wd = os.path.join(self.sim_dir, self.sim_name)
+        self.make_sim_folder()
 
         # set remaining paths and names
         self.cfile_name = '{}.msg.cfile'.format(self.sim_name)
@@ -282,8 +286,10 @@ class PuckSim:
         self.job_number = 1
 
         self.cfile = os.path.join(self.sim_wd, self.cfile_name)
-        self.keyword_geom = os.path.join(self.sim_wd, self.keyword_geom_name)
-        self.keyword_main = os.path.join(self.sim_wd, self.keyword_main_name)
+        self.keyword_geom_path = os.path.join(
+            self.sim_wd, self.keyword_geom_name)
+        self.keyword_main_path = os.path.join(
+            self.sim_wd, self.keyword_main_name)
 
         # additional parameters for model generation
         self.radius = None
@@ -305,6 +311,12 @@ class PuckSim:
 
         self.sim_output = None
         self.sim_error = None
+        self.keyword_geom = None
+        self.surface_nodes = None
+
+    def make_sim_folder(self) -> None:
+        if not os.path.exists(self.sim_wd):
+            os.makedirs(self.sim_wd)
 
     def setup_simulation(self, radius, length, num_elements) -> None:
         """
@@ -348,7 +360,7 @@ class PuckSim:
         """
         match = {
             "working_directory": self.sim_wd,
-            "keyword_file_name": self.keyword_geom
+            "keyword_file_name": self.keyword_geom_path
         }
         with open(self.cfile_template, 'r') as f:
             data = f.read()
@@ -400,7 +412,7 @@ class PuckSim:
         match = {
             "date_time": self.date_time,
             "title": self.title,
-            "include_file": self.keyword_geom
+            "include_file": self.keyword_geom_path
         }
         with open(self.keyword_main_template, 'r') as f:
             data = f.read()
@@ -408,7 +420,7 @@ class PuckSim:
 
         data = self.replace(data, match)
 
-        with open(self.keyword_main, "w") as text_file:
+        with open(self.keyword_main_path, "w") as text_file:
             print(data, file=text_file)
 
     def run_simulation(self) -> str:
@@ -419,7 +431,7 @@ class PuckSim:
 
         bash_command = [
             self.dyna_s_path,
-            "i={}".format(self.keyword_main),
+            "i={}".format(self.keyword_main_path),
             "ncpu=8",
             "memory=1000m",
             "jobid={}_job_{}".format(self.sim_name, self.job_number)
@@ -434,11 +446,35 @@ class PuckSim:
         print("end sim")
         self.job_number += 1
 
+    def import_geometry_keyword(self) -> None:
+        """
+        Imports the geometry keyword file
+        Returns
+        -------
+            None
+        """
+        self.keyword_geom = KeyFile(self.keyword_geom_path, parse_mesh=True)
 
-# self.job_name = "{}_job_{}".format(self.job_number)
+    def get_puck_surface_nodes(self, epsilon=0.00001) -> list:
+        """
+        Collects the node IDs for nodes on the surface of the puck
+        Parameters
+        ----------
+        epsilon: float the tolerance distance from the radius curve
 
-# TODO create a new class for generating puck geometries
-# TODO method update cfile
-# TODO method run cfile to creat gemetry.k
-# TODO method update main.k
-# TODO method run main.k in given wd
+        Returns
+        -------
+            None
+        """
+        threshold_dist = self.radius - epsilon
+        self.surface_nodes = []
+        for node in self.keyword_geom.get_nodes():
+            _, y, z = node.get_coords()[0]
+            a = (y, z)
+            b = (0, 0)
+            dst = distance.euclidean(a, b)
+            if dst > threshold_dist:
+                self.surface_nodes.append(node.get_id())
+
+        return self.surface_nodes
+
