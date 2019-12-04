@@ -15,7 +15,7 @@ from matplotlib.colors import Normalize
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-from Utils import nodes_to_disp_array, nodes_to_coord_array, \
+from Utils.Utils import nodes_to_disp_array, nodes_to_coord_array, \
     elements_to_stress_array, elements_to_strain_array
 
 
